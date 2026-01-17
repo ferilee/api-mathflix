@@ -6,6 +6,9 @@ import quizRoute from './routes/quiz';
 import questionsRoute from './routes/questions';
 import leaderboardRoute from './routes/leaderboard';
 import announcementsRoute from './routes/announcements';
+import discussionsRoute from './routes/discussions';
+import cohortsRoute from './routes/cohorts';
+import assignmentsRoute from './routes/assignments';
 
 const app = new Hono();
 
@@ -13,7 +16,7 @@ app.use('/*', cors({
     origin: (origin) => {
         return origin.startsWith('http://localhost:') ? origin : 'http://localhost:9001';
     },
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Student-ID'],
     allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT'],
     exposeHeaders: ['Content-Length'],
     maxAge: 600,
@@ -30,6 +33,9 @@ app.route('/quizzes', quizRoute);
 app.route('/questions', questionsRoute);
 app.route('/leaderboard', leaderboardRoute);
 app.route('/announcements', announcementsRoute);
+app.route('/discussions', discussionsRoute);
+app.route('/cohorts', cohortsRoute);
+app.route('/assignments', assignmentsRoute);
 
 // Strict /submit-quiz endpoint as requested
 app.post('/submit-quiz', async (c) => {

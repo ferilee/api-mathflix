@@ -59,6 +59,62 @@ export const announcements = sqliteTable('announcements', {
   created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
+// Posts Table (Discussions)
+export const posts = sqliteTable('posts', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  content: text('content').notNull(),
+  author_id: text('author_id').notNull(), // Can be student ID or 'admin'
+  author_name: text('author_name').notNull(),
+  author_role: text('author_role').notNull(), // 'student' | 'admin' | 'guru'
+  is_locked: integer('is_locked', { mode: 'boolean' }).default(false),
+  created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+// Comments Table
+export const comments = sqliteTable('comments', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  post_id: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  author_id: text('author_id').notNull(),
+  author_name: text('author_name').notNull(),
+  author_role: text('author_role').notNull(),
+  created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+
+// Cohorts Table
+export const cohorts = sqliteTable('cohorts', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  description: text('description'),
+});
+
+// Cohort Members Table
+export const cohort_members = sqliteTable('cohort_members', {
+  cohort_id: text('cohort_id').notNull().references(() => cohorts.id, { onDelete: 'cascade' }),
+  student_id: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+});
+
+// Assignments Table
+export const assignments = sqliteTable('assignments', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  due_date: integer('due_date', { mode: 'timestamp' }).notNull(),
+  target_grade: integer('target_grade'), // 10, 11, 12
+  target_major: text('target_major'), // 'RPL', 'TKJ', etc.
+  created_at: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+});
+
+// Assignment Targets Table
+export const assignment_targets = sqliteTable('assignment_targets', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  assignment_id: text('assignment_id').notNull().references(() => assignments.id, { onDelete: 'cascade' }),
+  cohort_id: text('cohort_id').references(() => cohorts.id, { onDelete: 'cascade' }),
+  student_id: text('student_id').references(() => students.id, { onDelete: 'cascade' }),
+});
+
+
 // Relationships
 export const materialsRelations = relations(materials, ({ one }) => ({
   quiz: one(quizzes, {
@@ -85,6 +141,7 @@ export const questionsRelations = relations(questions, ({ one }) => ({
 
 export const studentsRelations = relations(students, ({ many }) => ({
   quiz_results: many(quiz_results),
+  cohorts: many(cohort_members),
 }));
 
 export const quizResultsRelations = relations(quiz_results, ({ one }) => ({
@@ -95,5 +152,50 @@ export const quizResultsRelations = relations(quiz_results, ({ one }) => ({
   quiz: one(quizzes, {
     fields: [quiz_results.quiz_id],
     references: [quizzes.id],
+  }),
+}));
+
+export const postsRelations = relations(posts, ({ many }) => ({
+  comments: many(comments),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  post: one(posts, {
+    fields: [comments.post_id],
+    references: [posts.id],
+  }),
+}));
+
+export const cohortsRelations = relations(cohorts, ({ many }) => ({
+  members: many(cohort_members),
+}));
+
+export const cohortMembersRelations = relations(cohort_members, ({ one }) => ({
+  cohort: one(cohorts, {
+    fields: [cohort_members.cohort_id],
+    references: [cohorts.id],
+  }),
+  student: one(students, {
+    fields: [cohort_members.student_id],
+    references: [students.id],
+  }),
+}));
+
+export const assignmentsRelations = relations(assignments, ({ many }) => ({
+  targets: many(assignment_targets),
+}));
+
+export const assignmentTargetsRelations = relations(assignment_targets, ({ one }) => ({
+  assignment: one(assignments, {
+    fields: [assignment_targets.assignment_id],
+    references: [assignments.id],
+  }),
+  cohort: one(cohorts, {
+    fields: [assignment_targets.cohort_id],
+    references: [cohorts.id],
+  }),
+  student: one(students, {
+    fields: [assignment_targets.student_id],
+    references: [students.id],
   }),
 }));
