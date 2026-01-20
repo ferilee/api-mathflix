@@ -117,6 +117,58 @@ curl -X POST http://localhost:3000/quizzes/submit-quiz \
   }'
 ```
 
+```
+
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+
+#### Production (Named Volume)
+```bash
+# Pull and start the container
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+#### Development (Bind Mount)
+```bash
+# Create data directory
+mkdir -p data
+
+# Start with dev compose file
+docker-compose -f docker-compose.dev.yml up -d
+
+# Database will be at ./data/sqlite.db
+```
+
+### Manual Docker Run
+```bash
+# Pull image from GHCR
+docker pull ghcr.io/ferilee/api-mathflix:latest
+
+# Run with named volume
+docker run -d \
+  --name api-mathflix \
+  -p 3000:3000 \
+  -e DB_PATH=/app/data/sqlite.db \
+  -v mathflix-data:/app/data \
+  ghcr.io/ferilee/api-mathflix:latest
+```
+
+### GitHub Actions - Manual Publish
+1. Go to your repository's **Actions** tab
+2. Select **"Publish Docker Image to GHCR"**
+3. Click **"Run workflow"**
+4. Wait for the build to complete
+5. Image will be available at `ghcr.io/ferilee/api-mathflix:latest`
+
+📖 **Detailed database mounting guide:** See [DOCKER_DATABASE.md](./DOCKER_DATABASE.md)
+
 ## Database Management
 The database is auto-managed using Drizzle Kit.
 - **Push Schema Changes:** `bun x drizzle-kit push`

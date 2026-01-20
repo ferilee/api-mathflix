@@ -3,16 +3,13 @@ version: '3.8'
 services:
   api-mathflix:
     image: ghcr.io/ferilee/api-mathflix:latest
-    container_name: api-mathflix
+    container_name: api-mathflix-dev
     ports:
       - "3000:3000"
     restart: unless-stopped
     environment:
       - DB_PATH=/app/data/sqlite.db
     volumes:
-      # Named volume untuk database (recommended untuk production)
-      - mathflix-data:/app/data
-
-volumes:
-  mathflix-data:
-    driver: local
+      # Bind mount ke direktori lokal (untuk development)
+      # Database akan tersimpan di ./data/sqlite.db di host
+      - ./data:/app/data
