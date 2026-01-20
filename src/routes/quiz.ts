@@ -9,14 +9,15 @@ const app = new Hono();
 
 // Schemas
 const quizSchema = z.object({
-    material_id: z.string().uuid(),
+    material_id: z.string(),
     title: z.string().min(1),
     passing_score: z.number().int().min(0).max(100),
+    style: z.string().optional(),
 });
 
 const questionSchema = z.object({
     question_text: z.string().min(1),
-    question_type: z.enum(['multiple_choice', 'essay']),
+    question_type: z.string(), // multiple_choice, essay, multiple_answer, true_false, short_answer, matching
     options: z.array(z.string()),
     correct_answer: z.string().min(1),
 });

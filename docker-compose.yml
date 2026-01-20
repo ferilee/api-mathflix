@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  api-mathflix:
+    image: ghcr.io/ferilee/api-mathflix:latest
+    container_name: api-mathflix
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./sqlite.db:/app/sqlite.db
