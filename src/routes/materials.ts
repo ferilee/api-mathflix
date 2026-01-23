@@ -14,6 +14,20 @@ const materialSchema = z.object({
     major_target: z.string().optional(),
     teacher_name: z.string().optional(),
     is_featured: z.boolean().optional(),
+    embedded_tool_url: z.string().optional(), // Legacy field
+    tool_type: z.string().optional(), // Legacy field
+    image_url: z.string().optional(),
+    // Per-stage embed tools
+    discover_tool_type: z.string().optional(),
+    discover_tool_url: z.string().optional(),
+    explore_tool_type: z.string().optional(),
+    explore_tool_url: z.string().optional(),
+    launch_tool_type: z.string().optional(),
+    launch_tool_url: z.string().optional(),
+    transform_tool_type: z.string().optional(),
+    transform_tool_url: z.string().optional(),
+    assess_tool_type: z.string().optional(),
+    assess_tool_url: z.string().optional(),
 });
 
 // GET /materials

@@ -271,7 +271,7 @@ curl -X DELETE http://localhost:3000/announcements/{id}
 
 ### Discussions
 ```bash
-# Mendapatkan semua postingan diskusi dengan komentar dan voting
+# Mendapatkan semua postingan diskusi dengan komentar
 curl -X GET http://localhost:3000/discussions
 
 # Membuat postingan baru
@@ -281,17 +281,7 @@ curl -X POST http://localhost:3000/discussions \
     "content": "Isi postingan diskusi",
     "author_id": "id_penulis",
     "author_name": "Nama Penulis",
-    "author_role": "student",
-    "poll_options": [
-      {
-        "id": "option1",
-        "text": "Pilihan 1"
-      },
-      {
-        "id": "option2",
-        "text": "Pilihan 2"
-      }
-    ]
+    "author_role": "student"
   }'
 
 # Mengunci/membuka postingan
@@ -317,13 +307,6 @@ curl -X POST http://localhost:3000/discussions/{id}/comments \
 # Menghapus komentar
 curl -X DELETE http://localhost:3000/discussions/comments/{id}
 
-# Memberikan voting pada polling
-curl -X POST http://localhost:3000/discussions/{id}/vote \
-  -H "Content-Type: application/json" \
-  -d '{
-    "student_id": "id_siswa",
-    "option_index": 0
-  }'
 ```
 
 ### Cohorts

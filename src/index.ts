@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { serveStatic } from "hono/bun";
 import studentsRoute from "./routes/students";
 import materialsRoute from "./routes/materials";
 import quizRoute from "./routes/quiz";
@@ -13,42 +14,15 @@ import reflectionsRoute from "./routes/reflections";
 import analyticsRoute from "./routes/analytics";
 import badgesRoute from "./routes/badges";
 import gradingRoute from "./routes/grading";
+import uploadRoute from "./routes/upload";
+import questionBankRoute from "./routes/questionBank";
+import activityRoute from "./routes/activity";
+import { ensureBucket } from "./lib/s3";
 
 const app = new Hono();
 
-// --- AUTO MIGRATION FOR POLLS (Temporary Fix) ---
-import { Database } from "bun:sqlite";
-try {
-  const migrateDb = new Database("sqlite.db");
-  console.log("Running Auto-Migration for Polls...");
-
-  // 1. Add poll_options
-  try {
-    migrateDb.run("ALTER TABLE posts ADD COLUMN poll_options TEXT");
-    console.log("✅ Added poll_options column");
-  } catch (e: any) {
-    // Ignore duplicate column error
-  }
-
-  // 2. Add poll_votes table
-  migrateDb.run(`
-        CREATE TABLE IF NOT EXISTS poll_votes (
-            id TEXT PRIMARY KEY,
-            post_id TEXT NOT NULL,
-            student_id TEXT NOT NULL,
-            option_index INTEGER NOT NULL,
-            created_at INTEGER NOT NULL,
-            FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-            FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
-        )
-    `);
-  console.log("✅ Verified poll_votes table");
-
-  migrateDb.close();
-} catch (e) {
-  console.error("Migration error:", e);
-}
-// ------------------------------------------------
+// Initialize MinIO Bucket
+ensureBucket().catch((err) => console.error("MinIO Bucket Init Error:", err));
 
 app.use(
   "/*",
@@ -79,10 +53,23 @@ app.route("/reflections", reflectionsRoute);
 app.route("/analytics", analyticsRoute);
 app.route("/badges", badgesRoute);
 app.route("/grading", gradingRoute);
+app.route("/upload", uploadRoute);
+app.route("/question-bank", questionBankRoute);
+app.route("/activity", activityRoute);
+
+// Serve static files from uploads directory
+app.use("/uploads/*", serveStatic({ root: "./" }));
 
 // Strict /submit-quiz endpoint as requested
 app.post("/submit-quiz", async (c) => {
   return c.redirect("/quizzes/submit-quiz", 307);
 });
+
+
+const port = Number(process.env.PORT || process.env.BUN_PORT) || 3000;
+if (import.meta.main) {
+  const server = Bun.serve({ fetch: app.fetch, port });
+  console.log(`API server running on ${server.protocol}://${server.hostname}:${server.port}`);
+}
 
 export default app;

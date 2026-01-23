@@ -17,7 +17,8 @@ app.post('/', async (c) => {
             description: body.description,
             due_date: new Date(body.due_date),
             target_grade: body.target_grade,
-            target_major: body.target_major
+            target_major: body.target_major,
+            rubric: body.rubric || null
         }).returning();
 
         if (!newAssignment) {
@@ -204,6 +205,9 @@ app.get('/:id/submissions', async (c) => {
         });
         if (!assignment) return c.json({ error: 'Assignment not found' }, 404);
 
+        console.log(`[DEBUG] Submissions for Assignment: ${id}`);
+        console.log(`[DEBUG] Targets: Grade=${assignment.target_grade}, Major=${assignment.target_major}`);
+
         // 2. Get Individual Targets
         const individualTargets = await db.select({ student_id: assignment_targets.student_id })
             .from(assignment_targets)
@@ -212,55 +216,79 @@ app.get('/:id/submissions', async (c) => {
 
         // 3. Build Student Query
         const conditions = [];
+
         // Class-based targets
-        if (assignment.target_grade && assignment.target_grade !== -1) {
-            conditions.push(and(
-                eq(students.grade_level, assignment.target_grade),
-                assignment.target_major && assignment.target_major !== 'NONE' ? eq(students.major, assignment.target_major) : undefined
-            ));
+        if (assignment.target_grade !== -1 && assignment.target_major !== 'NONE') {
+            const classFilters = [];
+            if (assignment.target_grade !== null) {
+                classFilters.push(eq(students.grade_level, assignment.target_grade));
+            }
+            if (assignment.target_major !== null) {
+                classFilters.push(eq(students.major, assignment.target_major));
+            }
+
+            if (classFilters.length > 0) {
+                conditions.push(and(...classFilters));
+            }
         }
+
         // Individual targets
         if (targetIds.length > 0) {
             conditions.push(inArray(students.id, targetIds));
         }
 
-        // If no targets defined (e.g. legacy or error), fallback to empty? or all? 
-        // Logic: if both class and individual are empty/none, maybe it selects nothing.
-        // But if conditions is empty, `or()` might error or return nothing.
-
-        // However, usually one is set. If conditions empty, return simple submissions list?
-        // Let's assume there's at least one target or we just show submissions that exist.
-
         let studentsList: any[] = [];
         if (conditions.length > 0) {
             studentsList = await db.select().from(students).where(or(...conditions));
+        } else if (assignment.target_grade === null && assignment.target_major === null) {
+            // No class filters and not private -> Everyone
+            studentsList = await db.select().from(students);
+        } else {
+            studentsList = [];
         }
+
+        console.log(`[DEBUG] Targeted Students count: ${studentsList.length}`);
 
         // 4. Get Actual Submissions
         const submissions = await db.select()
             .from(assignment_submissions)
             .where(eq(assignment_submissions.assignment_id, id));
 
+        console.log(`[DEBUG] Submissions found: ${submissions.length}`);
+
         // 5. Merge
-        const merged = studentsList.map(s => {
+        // Use a Map to combine target list and actual submitters
+        const mergedMap = new Map();
+
+        // Add everyone from target list
+        studentsList.forEach(s => {
             const sub = submissions.find(sub => sub.student_id === s.id);
-            return {
+            mergedMap.set(s.id, {
                 student: s,
                 submission: sub || null,
                 status: sub ? 'submitted' : 'missing'
-            };
+            });
         });
 
-        // Also add any submissions from students NOT in the target list (edge case: student moved classes?)
-        submissions.forEach(sub => {
-            if (!studentsList.find(s => s.id === sub.student_id)) {
-                // We need to fetch this student info if possible, or just push submission
-                // For now, ignore or simple fetch could be expensive. 
-                // Let's skip optimization and just rely on targeted list.
+        // Add any submissions from students NOT in the target list
+        for (const sub of submissions) {
+            if (!mergedMap.has(sub.student_id)) {
+                const studentInfo = await db.query.students.findFirst({
+                    where: eq(students.id, sub.student_id)
+                });
+                if (studentInfo) {
+                    mergedMap.set(sub.student_id, {
+                        student: studentInfo,
+                        submission: sub,
+                        status: 'submitted'
+                    });
+                }
             }
-        });
+        }
 
-        return c.json(merged);
+        const result = Array.from(mergedMap.values());
+        console.log(`[DEBUG] Result count: ${result.length}`);
+        return c.json(result);
     } catch (e: any) {
         console.error(e);
         return c.json({ error: e.message }, 500);
@@ -287,7 +315,11 @@ app.post('/:id/grade', async (c) => {
 
         if (existing) {
             await db.update(assignment_submissions)
-                .set({ grade: body.grade, feedback: body.feedback })
+                .set({
+                    grade: body.grade,
+                    feedback: body.feedback,
+                    rubric_scores: body.rubric_scores || null
+                })
                 .where(eq(assignment_submissions.id, existing.id));
         } else {
             // Create "Graded but not submitted" entry? 
@@ -297,6 +329,7 @@ app.post('/:id/grade', async (c) => {
                 student_id: body.student_id,
                 grade: body.grade,
                 feedback: body.feedback,
+                rubric_scores: body.rubric_scores || null,
                 submission_note: 'Graded by teacher (No submission)',
                 submitted_at: new Date()
             });

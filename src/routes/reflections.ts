@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../db';
 import { reflections, students } from '../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 const app = new Hono();
 
@@ -27,6 +27,32 @@ app.post('/', async (c) => {
         console.error(e);
         return c.json({ error: e.message || String(e) }, 500);
     }
+});
+
+
+// GET Latest Reflections for Student IDs
+// Query: ?student_ids=UUID,UUID
+app.get('/latest', async (c) => {
+    const raw = c.req.query('student_ids') || '';
+    const studentIds = raw.split(',').map((id) => id.trim()).filter(Boolean);
+
+    if (studentIds.length === 0) {
+        return c.json([]);
+    }
+
+    const rows = await db.select()
+        .from(reflections)
+        .where(inArray(reflections.student_id, studentIds))
+        .orderBy(desc(reflections.created_at));
+
+    const latestMap = new Map();
+    for (const row of rows) {
+        if (!latestMap.has(row.student_id)) {
+            latestMap.set(row.student_id, row);
+        }
+    }
+
+    return c.json(Array.from(latestMap.values()));
 });
 
 // GET My Reflections
@@ -66,6 +92,30 @@ app.get('/', async (c) => {
             orderBy: [desc(reflections.created_at)]
         });
         return c.json(result);
+    } catch (e: any) {
+        console.error(e);
+        return c.json({ error: e.message || String(e) }, 500);
+    }
+});
+
+
+// DELETE Reflection
+// Optional Header: X-Student-ID (if set, only allows deleting own reflection)
+app.delete('/:id', async (c) => {
+    const reflectionId = c.req.param('id');
+    const studentId = c.req.header('X-Student-ID');
+
+    try {
+        const whereClause = studentId
+            ? and(eq(reflections.id, reflectionId), eq(reflections.student_id, studentId))
+            : eq(reflections.id, reflectionId);
+
+        const deleted = await db.delete(reflections).where(whereClause).returning();
+        if (!deleted || deleted.length === 0) {
+            return c.json({ error: 'Reflection not found' }, 404);
+        }
+
+        return c.json({ success: true });
     } catch (e: any) {
         console.error(e);
         return c.json({ error: e.message || String(e) }, 500);

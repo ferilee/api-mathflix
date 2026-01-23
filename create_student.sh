@@ -2,7 +2,7 @@
 
 # Create a student
 echo "Creating student..."
-curl -X POST http://localhost:3000/students \
+curl -X POST http://localhost:3001/students \
   -H "Content-Type: application/json" \
   -d '{
     "nisn": "1234567890",
