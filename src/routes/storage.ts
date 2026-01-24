@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import { GetObjectCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  HeadBucketCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 import { Readable } from "node:stream";
 import { bucketName, s3Client } from "../lib/s3";
 
@@ -16,6 +20,35 @@ storage.get("/health", async (c) => {
     }
     console.error("Storage health error:", error);
     return c.json({ ok: false, status: "unreachable" }, 503);
+  }
+});
+
+storage.get("/list", async (c) => {
+  try {
+    const prefix = c.req.query("prefix") || "";
+    const result = await s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: bucketName,
+        Prefix: prefix,
+        MaxKeys: 200,
+      }),
+    );
+
+    const items = (result.Contents || [])
+      .map((item) => ({
+        key: item.Key || "",
+        size: item.Size || 0,
+        last_modified: item.LastModified
+          ? item.LastModified.toISOString()
+          : null,
+        url: item.Key ? `/storage/${item.Key}` : "",
+      }))
+      .filter((item) => item.key);
+
+    return c.json({ items });
+  } catch (error: any) {
+    console.error("Storage list error:", error);
+    return c.json({ error: "Failed to list storage files" }, 500);
   }
 });
 
