@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { compress } from "hono/compress";
 import { serveStatic } from "hono/bun";
 import studentsRoute from "./routes/students";
 import materialsRoute from "./routes/materials";
@@ -21,6 +22,11 @@ import { ensureBucket } from "./lib/s3";
 
 const app = new Hono();
 
+app.onError((err, c) => {
+  console.error("Unhandled API error:", err);
+  return c.json({ error: err.message || "Internal Server Error" }, 500);
+});
+
 // Initialize MinIO Bucket
 ensureBucket().catch((err) => console.error("MinIO Bucket Init Error:", err));
 
@@ -35,6 +41,8 @@ app.use(
     credentials: true,
   }),
 );
+
+app.use("/*", compress());
 
 app.get("/", (c) => {
   return c.text("Hello Micro-Learning API!");
