@@ -21,6 +21,7 @@ export const materials = sqliteTable("materials", {
   description: text("description"), // Short description for cards/hero
   content: text("content").notNull(),
   major_target: text("major_target"), // Optional
+  target_grade: integer("target_grade"), // Optional
   teacher_name: text("teacher_name").default("Feri Dwi Hermawan"),
   embedded_tool_url: text("embedded_tool_url"), // GeoGebra or Desmos URL (legacy - kept for backward compatibility)
   tool_type: text("tool_type"), // 'geogebra', 'desmos', 'generic' (legacy - kept for backward compatibility)

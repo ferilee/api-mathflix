@@ -12,6 +12,7 @@ const materialSchema = z.object({
     description: z.string().optional(),
     content: z.string().min(1),
     major_target: z.string().optional(),
+    target_grade: z.number().int().nullable().optional(),
     teacher_name: z.string().optional(),
     is_featured: z.boolean().optional(),
     embedded_tool_url: z.string().optional(), // Legacy field
