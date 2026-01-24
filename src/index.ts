@@ -27,13 +27,12 @@ ensureBucket().catch((err) => console.error("MinIO Bucket Init Error:", err));
 app.use(
   "/*",
   cors({
-    origin: "*", // Allow access from any origin
+    origin: (origin) => origin ?? "*", // Reflect origin for credentialed requests
     allowHeaders: ["Content-Type", "Authorization", "X-Student-ID"],
     allowMethods: ["POST", "GET", "OPTIONS", "DELETE", "PUT"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
-    // Wildcard origin is incompatible with credentials; keep public CORS open.
-    credentials: false,
+    credentials: true,
   }),
 );
 
@@ -74,4 +73,4 @@ if (import.meta.main) {
   );
 }
 
-export default app;
+export { app };
