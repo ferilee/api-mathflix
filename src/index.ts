@@ -32,7 +32,8 @@ app.use(
     allowMethods: ["POST", "GET", "OPTIONS", "DELETE", "PUT"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
-    credentials: true,
+    // Wildcard origin is incompatible with credentials; keep public CORS open.
+    credentials: false,
   }),
 );
 
@@ -65,11 +66,12 @@ app.post("/submit-quiz", async (c) => {
   return c.redirect("/quizzes/submit-quiz", 307);
 });
 
-
 const port = Number(process.env.PORT || process.env.BUN_PORT) || 3000;
 if (import.meta.main) {
   const server = Bun.serve({ fetch: app.fetch, port });
-  console.log(`API server running on ${server.protocol}://${server.hostname}:${server.port}`);
+  console.log(
+    `API server running on ${server.protocol}://${server.hostname}:${server.port}`,
+  );
 }
 
 export default app;
