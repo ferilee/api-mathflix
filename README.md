@@ -119,6 +119,33 @@ curl -X POST http://localhost:3000/quizzes/submit-quiz \
 
 ```
 
+### 4. Storage (MinIO)
+
+#### Health Check
+```bash
+curl http://localhost:3000/storage/health
+```
+
+#### Upload File
+```bash
+curl -X POST http://localhost:3000/upload \
+  -F "file=@/path/to/file.png"
+```
+
+Response includes:
+- `url`: path for fetching the file via storage
+- `filename`: object key in MinIO
+
+#### Fetch File
+```bash
+curl http://localhost:3000/storage/<filename>
+```
+
+#### List Files
+```bash
+curl http://localhost:3000/upload/list
+```
+
 ## Docker Deployment
 
 ### Using Docker Compose (Recommended)

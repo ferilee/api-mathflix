@@ -18,6 +18,7 @@ import gradingRoute from "./routes/grading";
 import uploadRoute from "./routes/upload";
 import questionBankRoute from "./routes/questionBank";
 import activityRoute from "./routes/activity";
+import storageRoute from "./routes/storage";
 import { ensureBucket } from "./lib/s3";
 
 const app = new Hono();
@@ -62,6 +63,7 @@ app.route("/analytics", analyticsRoute);
 app.route("/badges", badgesRoute);
 app.route("/grading", gradingRoute);
 app.route("/upload", uploadRoute);
+app.route("/storage", storageRoute);
 app.route("/question-bank", questionBankRoute);
 app.route("/activity", activityRoute);
 
