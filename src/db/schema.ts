@@ -12,6 +12,36 @@ export const students = sqliteTable("students", {
   grade_level: integer("grade_level").notNull(),
 });
 
+// Teachers Table
+export const teachers = sqliteTable("teachers", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  nip: text("nip").notNull().unique(),
+  full_name: text("full_name").notNull(),
+  school: text("school").notNull(),
+  created_at: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Audit Logs Table
+export const audit_logs = sqliteTable("audit_logs", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  action: text("action").notNull(),
+  entity: text("entity").notNull(),
+  entity_id: text("entity_id").notNull(),
+  summary: text("summary"),
+  actor_id: text("actor_id").notNull(),
+  actor_name: text("actor_name").notNull(),
+  actor_role: text("actor_role").notNull(),
+  created_at: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 // Materials Table
 export const materials = sqliteTable("materials", {
   id: text("id")
@@ -23,6 +53,7 @@ export const materials = sqliteTable("materials", {
   major_target: text("major_target"), // Optional
   target_grade: integer("target_grade"), // Optional
   teacher_name: text("teacher_name").default("Feri Dwi Hermawan"),
+  created_by: text("created_by"),
   embedded_tool_url: text("embedded_tool_url"), // GeoGebra or Desmos URL (legacy - kept for backward compatibility)
   tool_type: text("tool_type"), // 'geogebra', 'desmos', 'generic' (legacy - kept for backward compatibility)
   is_featured: integer("is_featured", { mode: "boolean" }).default(false),
@@ -52,6 +83,7 @@ export const quizzes = sqliteTable("quizzes", {
   passing_score: integer("passing_score").notNull(),
   style: text("style").default("millionaire"), // 'millionaire' | 'classic'
   image_url: text("image_url"), // Background image URL for card display
+  created_by: text("created_by"),
   use_bank: integer("use_bank", { mode: "boolean" }).default(false),
   question_count: integer("question_count").default(10),
   difficulty_mix: text("difficulty_mix", { mode: "json" })
@@ -157,6 +189,7 @@ export const announcements = sqliteTable("announcements", {
     .default([]),
   is_pinned: integer("is_pinned", { mode: "boolean" }).default(false),
   priority: text("priority").default("normal"),
+  created_by: text("created_by"),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -284,6 +317,7 @@ export const assignments = sqliteTable("assignments", {
   due_date: integer("due_date", { mode: "timestamp" }).notNull(),
   target_grade: integer("target_grade"), // 10, 11, 12
   target_major: text("target_major"), // 'RPL', 'TKJ', etc.
+  created_by: text("created_by"),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

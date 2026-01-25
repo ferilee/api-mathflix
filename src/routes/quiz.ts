@@ -66,6 +66,7 @@ const quizSchema = z.object({
     passing_score: z.number().int().min(0).max(100),
     style: z.string().optional(),
     image_url: z.string().optional(),
+    created_by: z.string().optional(),
     use_bank: z.boolean().optional(),
     question_count: z.number().int().min(1).max(100).optional(),
     difficulty_mix: z.object({ easy: z.number().int().min(0).optional(), medium: z.number().int().min(0).optional(), hard: z.number().int().min(0).optional() }).optional(),

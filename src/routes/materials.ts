@@ -14,6 +14,7 @@ const materialSchema = z.object({
   major_target: z.string().optional(),
   target_grade: z.number().int().nullable().optional(),
   teacher_name: z.string().optional(),
+  created_by: z.string().optional(),
   is_featured: z.boolean().optional(),
   embedded_tool_url: z.string().optional(), // Legacy field
   tool_type: z.string().optional(), // Legacy field
@@ -48,6 +49,7 @@ app.get("/", async (c) => {
       description: materials.description,
       major_target: materials.major_target,
       teacher_name: materials.teacher_name,
+      created_by: materials.created_by,
       is_featured: materials.is_featured,
       image_url: materials.image_url,
       embedded_tool_url: materials.embedded_tool_url,

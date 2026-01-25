@@ -18,7 +18,8 @@ app.post('/', async (c) => {
             due_date: new Date(body.due_date),
             target_grade: body.target_grade,
             target_major: body.target_major,
-            rubric: body.rubric || null
+            rubric: body.rubric || null,
+            created_by: body.created_by || null
         }).returning();
 
         if (!newAssignment) {

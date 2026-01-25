@@ -24,6 +24,7 @@ const announcementSchema = z.object({
     attachments: z.array(attachmentSchema).optional(),
     is_pinned: z.boolean().optional(),
     priority: z.enum(['normal', 'important', 'deadline']).optional(),
+    created_by: z.string().optional(),
 });
 
 const normalizeTargets = (announcement: any) => {
@@ -138,6 +139,7 @@ app.post('/', zValidator('json', announcementSchema), async (c) => {
             attachments: body.attachments ?? [],
             is_pinned: body.is_pinned ?? false,
             priority: body.priority ?? 'normal',
+            created_by: body.created_by,
         })
         .returning();
     return c.json(announcement, 201);
