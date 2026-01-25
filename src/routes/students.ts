@@ -12,6 +12,7 @@ const studentSchema = z.object({
     full_name: z.string().min(1),
     major: z.string().min(1),
     grade_level: z.coerce.number().int(),
+    school: z.string().min(1),
 });
 
 // Schema for CSV Import (matches frontend payload)
@@ -20,6 +21,7 @@ const csvStudentSchema = z.object({
     name: z.string().min(1),
     grade: z.coerce.number().int(),
     major: z.string().min(1),
+    school: z.string().optional(),
 });
 const batchCsvSchema = z.array(csvStudentSchema);
 
@@ -32,6 +34,7 @@ app.get('/', async (c) => {
     const search = c.req.query('search') || '';
     const major = c.req.query('major') || '';
     const grade = c.req.query('grade') || '';
+    const school = c.req.query('school') || '';
 
     const offset = (page - 1) * limit;
 
@@ -47,6 +50,9 @@ app.get('/', async (c) => {
     }
     if (grade) {
         conditions.push(eq(students.grade_level, Number(grade)));
+    }
+    if (school) {
+        conditions.push(eq(students.school, school));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -208,7 +214,8 @@ app.post('/bulk', zValidator('json', batchCsvSchema), async (c) => {
         nisn: s.nisn,
         full_name: s.name,
         major: s.major,
-        grade_level: s.grade
+        grade_level: s.grade,
+        school: s.school || "Unknown"
     }));
 
     try {
@@ -237,6 +244,9 @@ app.post('/bulk-delete', async (c) => {
     }
     if (body.major) {
         conditions.push(eq(students.major, body.major));
+    }
+    if (body.school) {
+        conditions.push(eq(students.school, body.school));
     }
 
     if (conditions.length === 0) {

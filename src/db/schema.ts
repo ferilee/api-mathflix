@@ -10,6 +10,7 @@ export const students = sqliteTable("students", {
   full_name: text("full_name").notNull(),
   major: text("major").notNull(),
   grade_level: integer("grade_level").notNull(),
+  school: text("school").default("Unknown"),
 });
 
 // Teachers Table
