@@ -1,15 +1,16 @@
-
 import { Hono } from 'hono';
 import { db } from '../db';
 import { cohorts, cohort_members, students } from '../db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 const app = new Hono();
 
 // GET all cohorts
 app.get('/', async (c) => {
     try {
+        const createdBy = c.req.query('created_by');
         const result = await db.query.cohorts.findMany({
+            where: createdBy ? eq(cohorts.created_by, createdBy) : undefined,
             with: {
                 members: {
                     with: {
@@ -31,6 +32,7 @@ app.post('/', async (c) => {
         const [newItem] = await db.insert(cohorts).values({
             name: body.name,
             description: body.description,
+            created_by: body.created_by,
         }).returning();
         return c.json(newItem, 201);
     } catch (e) {
@@ -50,15 +52,6 @@ app.post('/:id/members', async (c) => {
             return c.json({ error: 'student_ids must be an array' }, 400);
         }
 
-        // Transactional approach ideally, but for now loop insert/ignore?
-        // SQLite insert or ignore is handy.
-        // First delete existing members if we want to "sync" or just append?
-        // User asked for "add members". But usually a manager interface syncs the list.
-        // Let's implement SYNC (remove not in list, add new ones) or just ADD. 
-        // Simplest for "Manager" is usually SYNC.
-        // But let's support just ADD for now, or cleaner: Replace all members.
-
-        // Let's go with: Delete all for this cohort, then re-insert.
         await db.delete(cohort_members).where(eq(cohort_members.cohort_id, cohortId));
 
         if (studentIds.length > 0) {

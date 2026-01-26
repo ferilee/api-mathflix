@@ -11,6 +11,11 @@ export const students = sqliteTable("students", {
   major: text("major").notNull(),
   grade_level: integer("grade_level").notNull(),
   school: text("school").default("Unknown"),
+  teacher_id: text("teacher_id"),
+  teacher_name: text("teacher_name"),
+  created_at: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 // Teachers Table
@@ -21,6 +26,7 @@ export const teachers = sqliteTable("teachers", {
   nip: text("nip").notNull().unique(),
   full_name: text("full_name").notNull(),
   school: text("school").notNull(),
+  status: text("status").notNull().default("approved"),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -296,6 +302,7 @@ export const cohorts = sqliteTable("cohorts", {
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
+  created_by: text("created_by"),
 });
 
 // Cohort Members Table

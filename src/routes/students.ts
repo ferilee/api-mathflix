@@ -7,12 +7,28 @@ import { zValidator } from '@hono/zod-validator';
 
 const app = new Hono();
 
+const normalizeCreatedAt = (value: any) => {
+    if (!value) return null;
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === "number") {
+        const ms = value < 1000000000000 ? value * 1000 : value;
+        return new Date(ms).toISOString();
+    }
+    try {
+        return new Date(value).toISOString();
+    } catch {
+        return null;
+    }
+};
+
 const studentSchema = z.object({
     nisn: z.string().min(1),
     full_name: z.string().min(1),
     major: z.string().min(1),
     grade_level: z.coerce.number().int(),
     school: z.string().min(1),
+    teacher_id: z.string().optional(),
+    teacher_name: z.string().optional(),
 });
 
 // Schema for CSV Import (matches frontend payload)
@@ -22,6 +38,8 @@ const csvStudentSchema = z.object({
     grade: z.coerce.number().int(),
     major: z.string().min(1),
     school: z.string().optional(),
+    teacher_id: z.string().optional(),
+    teacher_name: z.string().optional(),
 });
 const batchCsvSchema = z.array(csvStudentSchema);
 
@@ -35,6 +53,8 @@ app.get('/', async (c) => {
     const major = c.req.query('major') || '';
     const grade = c.req.query('grade') || '';
     const school = c.req.query('school') || '';
+    const teacherId = c.req.query('teacher_id') || '';
+    const teacherName = c.req.query('teacher_name') || '';
 
     const offset = (page - 1) * limit;
 
@@ -54,6 +74,12 @@ app.get('/', async (c) => {
     if (school) {
         conditions.push(eq(students.school, school));
     }
+    if (teacherId) {
+        conditions.push(eq(students.teacher_id, teacherId));
+    }
+    if (teacherName) {
+        conditions.push(like(students.teacher_name, '%' + teacherName + '%'));
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -62,10 +88,14 @@ app.get('/', async (c) => {
     const total = totalResult[0]?.count ?? 0;
 
     // Get paginated data
-    const data = await db.select().from(students)
+    const rows = await db.select().from(students)
         .where(whereClause)
         .limit(limit)
         .offset(offset);
+    const data = rows.map((row: any) => ({
+        ...row,
+        created_at: normalizeCreatedAt(row.created_at)
+    }));
 
     return c.json({
         data,
@@ -178,7 +208,8 @@ app.get('/:id', async (c) => {
     const id = c.req.param('id');
     const result = await db.select().from(students).where(eq(students.id, id));
     if (result.length === 0) return c.json({ error: 'Student not found' }, 404);
-    return c.json(result[0]);
+    const row = result[0];
+    return c.json({ ...row, created_at: normalizeCreatedAt(row.created_at) });
 });
 
 // POST /students
@@ -215,7 +246,9 @@ app.post('/bulk', zValidator('json', batchCsvSchema), async (c) => {
         full_name: s.name,
         major: s.major,
         grade_level: s.grade,
-        school: s.school || "Unknown"
+        school: s.school || "Unknown",
+        teacher_id: s.teacher_id || null,
+        teacher_name: s.teacher_name || null
     }));
 
     try {
