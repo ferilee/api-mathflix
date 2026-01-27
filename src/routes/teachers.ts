@@ -29,6 +29,12 @@ const withApprovedFallback = (status?: string | null) => {
   return eq(teachers.status, status);
 };
 
+const sanitizeTeacher = (row: any) => {
+  if (!row) return row;
+  const { password_hash, login_count, ...rest } = row;
+  return rest;
+};
+
 // GET /teachers
 app.get('/', async (c) => {
   const nip = c.req.query('nip');
@@ -40,14 +46,14 @@ app.get('/', async (c) => {
       ? and(eq(teachers.nip, nip), statusClause)
       : eq(teachers.nip, nip);
     const result = await db.select().from(teachers).where(whereClause);
-    return c.json(result);
+    return c.json(result.map(sanitizeTeacher));
   }
 
   const query = statusClause
     ? db.select().from(teachers).where(statusClause)
     : db.select().from(teachers);
   const result = await query.orderBy(desc(teachers.created_at));
-  return c.json(result);
+  return c.json(result.map(sanitizeTeacher));
 });
 
 // GET /teachers/requests
@@ -59,7 +65,7 @@ app.get('/requests', async (c) => {
     ? db.select().from(teachers).where(statusClause)
     : db.select().from(teachers);
   const result = await query.orderBy(desc(teachers.created_at));
-  return c.json(result);
+  return c.json(result.map(sanitizeTeacher));
 });
 
 // POST /teachers/requests
@@ -81,7 +87,7 @@ app.post('/requests', zValidator('json', teacherRequestSchema), async (c) => {
         })
         .where(eq(teachers.id, existing.id))
         .returning();
-      return c.json(updated[0], 200);
+      return c.json(sanitizeTeacher(updated[0]), 200);
     }
 
     if (existing.status === 'pending') {
@@ -95,7 +101,7 @@ app.post('/requests', zValidator('json', teacherRequestSchema), async (c) => {
     .insert(teachers)
     .values({ ...body, status: 'pending' })
     .returning();
-  return c.json(result[0], 201);
+  return c.json(sanitizeTeacher(result[0]), 201);
 });
 
 // POST /teachers/requests/:id/approve
@@ -107,7 +113,7 @@ app.post('/requests/:id/approve', async (c) => {
     .where(eq(teachers.id, id))
     .returning();
   if (result.length === 0) return c.json({ error: 'Teacher not found' }, 404);
-  return c.json(result[0]);
+  return c.json(sanitizeTeacher(result[0]));
 });
 
 // POST /teachers/requests/:id/reject
@@ -119,7 +125,7 @@ app.post('/requests/:id/reject', async (c) => {
     .where(eq(teachers.id, id))
     .returning();
   if (result.length === 0) return c.json({ error: 'Teacher not found' }, 404);
-  return c.json(result[0]);
+  return c.json(sanitizeTeacher(result[0]));
 });
 
 // POST /teachers
@@ -133,7 +139,7 @@ app.post('/', zValidator('json', teacherSchema), async (c) => {
     .insert(teachers)
     .values({ ...body, status: 'approved' })
     .returning();
-  return c.json(result[0], 201);
+  return c.json(sanitizeTeacher(result[0]), 201);
 });
 
 // DELETE /teachers/:id

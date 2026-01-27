@@ -21,6 +21,7 @@ import activityRoute from "./routes/activity";
 import storageRoute from "./routes/storage";
 import teachersRoute from "./routes/teachers";
 import auditLogsRoute from "./routes/auditLogs";
+import authRoute from "./routes/auth";
 import { ensureBucket } from "./lib/s3";
 
 const app = new Hono();
@@ -70,6 +71,7 @@ app.route("/question-bank", questionBankRoute);
 app.route("/activity", activityRoute);
 app.route("/teachers", teachersRoute);
 app.route("/audit-logs", auditLogsRoute);
+app.route("/auth", authRoute);
 
 // Serve static files from uploads directory
 app.use("/uploads/*", serveStatic({ root: "./" }));

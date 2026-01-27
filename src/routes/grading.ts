@@ -5,6 +5,12 @@ import { eq, sql } from 'drizzle-orm';
 
 const app = new Hono();
 
+const sanitizeStudent = (row: any) => {
+    if (!row) return row;
+    const { password_hash, ...rest } = row;
+    return rest;
+};
+
 app.get('/', async (c) => {
     try {
         // Fetch all students with their related data
@@ -60,6 +66,7 @@ app.get('/', async (c) => {
 
         // Map results
         const combined = studentsData.map(s => {
+            const safeStudent = sanitizeStudent(s);
             const q = quizzesAgg.find(x => x.student_id === s.id) || { total: 0, count: 0 };
             const r = reflectionsAgg.find(x => x.student_id === s.id) || { count: 0 };
             const b = badgesAgg.find(x => x.student_id === s.id) || { count: 0 };
@@ -67,7 +74,7 @@ app.get('/', async (c) => {
             const avg = q.count > 0 ? (q.total / q.count).toFixed(1) : 0;
 
             return {
-                ...s,
+                ...safeStudent,
                 quiz_total: q.total || 0,
                 quiz_avg: avg,
                 reflection_count: r.count,

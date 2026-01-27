@@ -13,6 +13,8 @@ export const students = sqliteTable("students", {
   school: text("school").default("Unknown"),
   teacher_id: text("teacher_id"),
   teacher_name: text("teacher_name"),
+  password_hash: text("password_hash"),
+  login_count: integer("login_count").notNull().default(0),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -27,6 +29,8 @@ export const teachers = sqliteTable("teachers", {
   full_name: text("full_name").notNull(),
   school: text("school").notNull(),
   status: text("status").notNull().default("approved"),
+  password_hash: text("password_hash"),
+  login_count: integer("login_count").notNull().default(0),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

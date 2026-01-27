@@ -5,6 +5,22 @@ import { eq } from 'drizzle-orm';
 
 const app = new Hono();
 
+const sanitizeStudent = (row: any) => {
+    if (!row) return row;
+    const { password_hash, ...rest } = row;
+    return rest;
+};
+
+const sanitizeCohort = (cohort: any) => ({
+    ...cohort,
+    members: Array.isArray(cohort.members)
+        ? cohort.members.map((member: any) => ({
+            ...member,
+            student: sanitizeStudent(member.student)
+        }))
+        : cohort.members
+});
+
 // GET all cohorts
 app.get('/', async (c) => {
     try {
@@ -19,7 +35,7 @@ app.get('/', async (c) => {
                 }
             }
         });
-        return c.json(result);
+        return c.json(result.map(sanitizeCohort));
     } catch (e) {
         return c.json({ error: e }, 500);
     }

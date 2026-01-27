@@ -6,6 +6,12 @@ import { eq, or, and, isNull, inArray } from 'drizzle-orm';
 
 const app = new Hono();
 
+const sanitizeStudent = (row: any) => {
+    if (!row) return row;
+    const { password_hash, ...rest } = row;
+    return rest;
+};
+
 // POST Create Assignment
 // Body: { title, description, due_date, target_grade: number, target_major: string, target_students: string[] }
 app.post('/', async (c) => {
@@ -265,7 +271,7 @@ app.get('/:id/submissions', async (c) => {
         studentsList.forEach(s => {
             const sub = submissions.find(sub => sub.student_id === s.id);
             mergedMap.set(s.id, {
-                student: s,
+                student: sanitizeStudent(s),
                 submission: sub || null,
                 status: sub ? 'submitted' : 'missing'
             });
@@ -279,7 +285,7 @@ app.get('/:id/submissions', async (c) => {
                 });
                 if (studentInfo) {
                     mergedMap.set(sub.student_id, {
-                        student: studentInfo,
+                        student: sanitizeStudent(studentInfo),
                         submission: sub,
                         status: 'submitted'
                     });

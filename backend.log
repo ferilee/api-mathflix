@@ -1,16 +1,1 @@
-64 | });
-65 | 
-66 | 
-67 | const port = Number(process.env.PORT || process.env.BUN_PORT) || 3000;
-68 | if (import.meta.main) {
-69 |   const server = Bun.serve({ fetch: app.fetch, port });
-                          ^
-error: Failed to start server. Is port 3001 in use?
- syscall: "listen",
-   errno: 0,
-    code: "EADDRINUSE"
-
-      at /home/ferilee/API-Mathflix-update/src/index.ts:69:22
-      at loadAndEvaluateModule (2:1)
-
-Bun v1.3.5 (Linux x64)
+API server running on http://localhost:3000

@@ -21,6 +21,15 @@ const normalizeCreatedAt = (value: any) => {
     }
 };
 
+const sanitizeStudent = (row: any) => {
+    if (!row) return row;
+    const { password_hash, login_count, ...rest } = row;
+    return {
+        ...rest,
+        created_at: normalizeCreatedAt(row.created_at)
+    };
+};
+
 const studentSchema = z.object({
     nisn: z.string().min(1),
     full_name: z.string().min(1),
@@ -92,10 +101,7 @@ app.get('/', async (c) => {
         .where(whereClause)
         .limit(limit)
         .offset(offset);
-    const data = rows.map((row: any) => ({
-        ...row,
-        created_at: normalizeCreatedAt(row.created_at)
-    }));
+    const data = rows.map(sanitizeStudent);
 
     return c.json({
         data,
@@ -208,8 +214,8 @@ app.get('/:id', async (c) => {
     const id = c.req.param('id');
     const result = await db.select().from(students).where(eq(students.id, id));
     if (result.length === 0) return c.json({ error: 'Student not found' }, 404);
-    const row = result[0];
-    return c.json({ ...row, created_at: normalizeCreatedAt(row.created_at) });
+    const row = sanitizeStudent(result[0]);
+    return c.json(row);
 });
 
 // POST /students
@@ -217,7 +223,7 @@ app.post('/', zValidator('json', studentSchema), async (c) => {
     const body = c.req.valid('json');
     try {
         const result = await db.insert(students).values(body).returning();
-        return c.json(result[0], 201);
+        return c.json(sanitizeStudent(result[0]), 201);
     } catch (e) {
         return c.json({ error: 'Failed to create student. NISN might be duplicate.' }, 400);
     }
@@ -230,7 +236,7 @@ app.put('/:id', zValidator('json', studentSchema.partial()), async (c) => {
     try {
         const result = await db.update(students).set(body).where(eq(students.id, id)).returning();
         if (result.length === 0) return c.json({ error: 'Student not found' }, 404);
-        return c.json(result[0]);
+        return c.json(sanitizeStudent(result[0]));
     } catch (e) {
         return c.json({ error: 'Failed to update student' }, 400);
     }
