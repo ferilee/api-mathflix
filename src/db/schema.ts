@@ -10,6 +10,8 @@ export const students = sqliteTable("students", {
   full_name: text("full_name").notNull(),
   major: text("major").notNull(),
   grade_level: integer("grade_level").notNull(),
+  class_name: text("class_name").default(""),
+  photo_profile: text("photo_profile"),
   school: text("school").default("Unknown"),
   teacher_id: text("teacher_id"),
   teacher_name: text("teacher_name"),

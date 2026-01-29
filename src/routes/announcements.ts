@@ -20,6 +20,7 @@ const announcementSchema = z.object({
     target_all: z.boolean().optional(),
     target_grades: z.array(z.number()).optional(),
     target_majors: z.array(z.string()).optional(),
+    target_classes: z.array(z.string()).optional(),
     target_cohorts: z.array(z.string()).optional(),
     attachments: z.array(attachmentSchema).optional(),
     is_pinned: z.boolean().optional(),
@@ -31,18 +32,20 @@ const normalizeTargets = (announcement: any) => {
     const targetAll = announcement.target_all ?? true;
     const grades = Array.isArray(announcement.target_grades) ? announcement.target_grades : [];
     const majors = Array.isArray(announcement.target_majors) ? announcement.target_majors : [];
+    const classes = Array.isArray(announcement.target_classes) ? announcement.target_classes : [];
     const cohorts = Array.isArray(announcement.target_cohorts) ? announcement.target_cohorts : [];
-    return { targetAll, grades, majors, cohorts };
+    return { targetAll, grades, majors, classes, cohorts };
 };
 
 const matchesTarget = (announcement: any, student: any, cohortIds: string[]) => {
-    const { targetAll, grades, majors, cohorts } = normalizeTargets(announcement);
+    const { targetAll, grades, majors, classes, cohorts } = normalizeTargets(announcement);
     if (targetAll) return true;
-    if (grades.length === 0 && majors.length === 0 && cohorts.length === 0) return true;
+    if (grades.length === 0 && majors.length === 0 && classes.length === 0 && cohorts.length === 0) return true;
     const gradeMatch = grades.includes(student.grade_level);
     const majorMatch = majors.includes(student.major);
+    const classMatch = classes.includes(student.class_name);
     const cohortMatch = cohorts.some((id: string) => cohortIds.includes(id));
-    return gradeMatch || majorMatch || cohortMatch;
+    return gradeMatch || majorMatch || classMatch || cohortMatch;
 };
 
 const buildCohortMap = (memberships: any[]) => {
@@ -94,9 +97,9 @@ app.get('/', async (c) => {
     const reads = await db.select().from(announcement_reads);
 
     const response = result.map((announcement) => {
-        const { targetAll, grades, majors, cohorts } = normalizeTargets(announcement);
+        const { targetAll, grades, majors, classes, cohorts } = normalizeTargets(announcement);
         const eligibleIds = new Set<string>();
-        if (targetAll || (grades.length === 0 && majors.length === 0 && cohorts.length === 0)) {
+        if (targetAll || (grades.length === 0 && majors.length === 0 && classes.length === 0 && cohorts.length === 0)) {
             allStudents.forEach((student) => eligibleIds.add(student.id));
         } else {
             allStudents.forEach((student) => {
@@ -135,6 +138,7 @@ app.post('/', zValidator('json', announcementSchema), async (c) => {
             target_all: body.target_all ?? true,
             target_grades: body.target_grades ?? [],
             target_majors: body.target_majors ?? [],
+            target_classes: body.target_classes ?? [],
             target_cohorts: body.target_cohorts ?? [],
             attachments: body.attachments ?? [],
             is_pinned: body.is_pinned ?? false,
@@ -193,6 +197,7 @@ app.get('/:id/readers', async (c) => {
             full_name: student.full_name,
             major: student.major,
             grade_level: student.grade_level,
+            class_name: student.class_name,
             has_read: readMap.has(student.id),
             read_at: readMap.get(student.id) || null,
         }))

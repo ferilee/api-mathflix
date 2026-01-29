@@ -22,6 +22,12 @@ const studentResetPasswordSchema = z.object({
   password: z.string().min(6).optional(),
 });
 
+const studentChangePasswordSchema = z.object({
+  nisn: z.string().min(1),
+  current_password: z.string().min(1),
+  new_password: z.string().min(6),
+});
+
 const teacherLoginSchema = z.object({
   nip: z.string().min(1),
   password: z.string().optional(),
@@ -37,6 +43,12 @@ const teacherResetPasswordSchema = z.object({
   password: z.string().min(6).optional(),
 });
 
+const teacherChangePasswordSchema = z.object({
+  nip: z.string().min(1),
+  current_password: z.string().min(1),
+  new_password: z.string().min(6),
+});
+
 const adminLoginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
@@ -49,6 +61,7 @@ const toStudentUser = (student: any) => ({
   major: student.major,
   grade_level: student.grade_level,
   school: student.school,
+  photo_profile: student.photo_profile,
   role: "student" as const,
 });
 
@@ -181,6 +194,42 @@ app.post(
       .returning();
 
     return c.json({ user: toStudentUser(updated[0]), temp_password: finalPassword });
+  },
+);
+
+app.post(
+  "/student/change-password",
+  zValidator("json", studentChangePasswordSchema),
+  async (c) => {
+    const { nisn, current_password, new_password } = c.req.valid("json");
+    const student = await db.query.students.findFirst({
+      where: eq(students.nisn, nisn),
+    });
+
+    if (!student) {
+      return c.json({ error: "NISN tidak ditemukan.", code: "NOT_FOUND" }, 404);
+    }
+
+    if (!student.password_hash) {
+      return c.json(
+        { error: "Password belum dibuat.", code: "PASSWORD_NOT_SET" },
+        409,
+      );
+    }
+
+    const ok = await verifyPassword(current_password, student.password_hash);
+    if (!ok) {
+      return c.json({ error: "Password salah.", code: "INVALID_CREDENTIALS" }, 401);
+    }
+
+    const passwordHash = await hashPassword(new_password.trim());
+    const updated = await db
+      .update(students)
+      .set({ password_hash: passwordHash })
+      .where(eq(students.id, student.id))
+      .returning();
+
+    return c.json({ user: toStudentUser(updated[0]) });
   },
 );
 
@@ -329,6 +378,56 @@ app.post(
       .returning();
 
     return c.json({ user: toTeacherUser(updated[0]), temp_password: finalPassword });
+  },
+);
+
+app.post(
+  "/guru/change-password",
+  zValidator("json", teacherChangePasswordSchema),
+  async (c) => {
+    const { nip, current_password, new_password } = c.req.valid("json");
+    const teacher = await db.query.teachers.findFirst({
+      where: eq(teachers.nip, nip),
+    });
+
+    if (!teacher) {
+      return c.json({ error: "NIP tidak ditemukan.", code: "NOT_FOUND" }, 404);
+    }
+
+    if (teacher.status === "pending") {
+      return c.json(
+        { error: "Akun guru masih menunggu konfirmasi.", code: "STATUS_PENDING" },
+        403,
+      );
+    }
+
+    if (teacher.status === "rejected") {
+      return c.json(
+        { error: "Permintaan guru ditolak.", code: "STATUS_REJECTED" },
+        403,
+      );
+    }
+
+    if (!teacher.password_hash) {
+      return c.json(
+        { error: "Password belum dibuat.", code: "PASSWORD_NOT_SET" },
+        409,
+      );
+    }
+
+    const ok = await verifyPassword(current_password, teacher.password_hash);
+    if (!ok) {
+      return c.json({ error: "Password salah.", code: "INVALID_CREDENTIALS" }, 401);
+    }
+
+    const passwordHash = await hashPassword(new_password.trim());
+    const updated = await db
+      .update(teachers)
+      .set({ password_hash: passwordHash })
+      .where(eq(teachers.id, teacher.id))
+      .returning();
+
+    return c.json({ user: toTeacherUser(updated[0]) });
   },
 );
 
